@@ -4,14 +4,36 @@ import java.util.*;
 import javax.mail.*;
 import javax.mail.internet.*;
 import javax.mail.internet.MimeMessage;
+import java.text.SimpleDateFormat;
+import java.util.concurrent.*;
 
 public class EventScheduler {
     private static List<Event> eventList = new ArrayList<>();
+    private static List<User> userList = new ArrayList<>();
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
+        // Schedule daily task to process events
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+        scheduler.scheduleAtFixedRate(EventScheduler::processDailyEvents, 0, 1, TimeUnit.DAYS);
+
         while (true) {
+            // User registration
+            System.out.println("Enter full names:");
+            String fullNames = scanner.nextLine();
+            System.out.println("Enter phone number:");
+            String phoneNumber = scanner.nextLine();
+            System.out.println("Enter email:");
+            String email = scanner.nextLine();
+            System.out.println("Enter password:");
+            String password = scanner.nextLine();
+
+            User newUser = new User(fullNames, phoneNumber, email, password);
+            userList.add(newUser);
+            System.out.println("Registration successful!");
+
+            // Event scheduling
             System.out.println("Enter event name:");
             String name = scanner.nextLine();
             System.out.println("Enter event date and time (YYYY-MM-DD HH:MM):");
@@ -21,14 +43,14 @@ public class EventScheduler {
             if (checkForConflicts(newEvent)) {
                 System.out.println("Event conflict detected!");
                 sendNotification("Event conflict for " + name, "Event conflict detected!", MessageType.ERROR);
-                sendEmail("your-email@example.com", "Event conflict detected!", "Event conflict for " + name);
-                sendSMS("your-phone-number", "Event conflict for " + name);
+                sendEmail(email, "Event conflict detected!", "Event conflict for " + name);
+                sendSMS(phoneNumber, "Event conflict for " + name);
             } else {
                 eventList.add(newEvent);
                 System.out.println("Event added successfully!");
                 sendNotification("Event added: " + name, "Event added successfully!", MessageType.INFO);
-                sendEmail("your-email@example.com", "Event added successfully!", "Event added: " + name);
-                sendSMS("your-phone-number", "Event added: " + name);
+                sendEmail(email, "Event added successfully!", "Event added: " + name);
+                sendSMS(phoneNumber, "Event added: " + name);
             }
         }
     }
@@ -86,6 +108,18 @@ public class EventScheduler {
         System.out.println("SMS sent to " + phoneNumber + ": " + message);
     }
 
+    private static void processDailyEvents() {
+        Date now = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-DD");
+        String today = sdf.format(now);
+        for (Event event : eventList) {
+            if (event.getDateTime().startsWith(today)) {
+                System.out.println("Processing event: " + event.getName());
+                // Perform daily processing for the event
+            }
+        }
+    }
+
     static class Event {
         private String name;
         private String dateTime;
@@ -101,6 +135,36 @@ public class EventScheduler {
 
         public String getDateTime() {
             return dateTime;
+        }
+    }
+
+    static class User {
+        private String fullNames;
+        private String phoneNumber;
+        private String email;
+        private String password;
+
+        public User(String fullNames, String phoneNumber, String email, String password) {
+            this.fullNames = fullNames;
+            this.phoneNumber = phoneNumber;
+            this.email = email;
+            this.password = password;
+        }
+
+        public String getFullNames() {
+            return fullNames;
+        }
+
+        public String getPhoneNumber() {
+            return phoneNumber;
+        }
+
+        public String getEmail() {
+            return email;
+        }
+
+        public String getPassword() {
+            return password;
         }
     }
 }
