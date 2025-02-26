@@ -1,0 +1,106 @@
+import java.awt.*;
+import java.awt.TrayIcon.MessageType;
+import java.util.*;
+import javax.mail.*;
+import javax.mail.internet.*;
+import javax.mail.internet.MimeMessage;
+
+public class EventScheduler {
+    private static List<Event> eventList = new ArrayList<>();
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        while (true) {
+            System.out.println("Enter event name:");
+            String name = scanner.nextLine();
+            System.out.println("Enter event date and time (YYYY-MM-DD HH:MM):");
+            String dateTime = scanner.nextLine();
+            Event newEvent = new Event(name, dateTime);
+
+            if (checkForConflicts(newEvent)) {
+                System.out.println("Event conflict detected!");
+                sendNotification("Event conflict for " + name, "Event conflict detected!", MessageType.ERROR);
+                sendEmail("your-email@example.com", "Event conflict detected!", "Event conflict for " + name);
+                sendSMS("your-phone-number", "Event conflict for " + name);
+            } else {
+                eventList.add(newEvent);
+                System.out.println("Event added successfully!");
+                sendNotification("Event added: " + name, "Event added successfully!", MessageType.INFO);
+                sendEmail("your-email@example.com", "Event added successfully!", "Event added: " + name);
+                sendSMS("your-phone-number", "Event added: " + name);
+            }
+        }
+    }
+
+    private static boolean checkForConflicts(Event newEvent) {
+        for (Event event : eventList) {
+            if (event.getDateTime().equals(newEvent.getDateTime())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void sendNotification(String title, String message, MessageType type) {
+        if (SystemTray.isSupported()) {
+            SystemTray tray = SystemTray.getSystemTray();
+            Image image = Toolkit.getDefaultToolkit().createImage("icon.png");
+            TrayIcon trayIcon = new TrayIcon(image, "Event Scheduler");
+            trayIcon.setImageAutoSize(true);
+            trayIcon.setToolTip("Event Scheduler");
+            try {
+                tray.add(trayIcon);
+                trayIcon.displayMessage(title, message, type);
+            } catch (AWTException e) {
+                System.err.println("System tray not supported!");
+            }
+        } else {
+            System.err.println("System tray not supported!");
+        }
+    }
+
+    private static void sendEmail(String to, String subject, String body) {
+        String from = "your-email@example.com";
+        String host = "smtp.example.com";
+        Properties properties = System.getProperties();
+        properties.setProperty("mail.smtp.host", host);
+        Session session = Session.getDefaultInstance(properties);
+
+        try {
+            MimeMessage message = new MimeMessage(session);
+            message.setFrom(new InternetAddress(from));
+            message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
+            message.setSubject(subject);
+            message.setText(body);
+            Transport.send(message);
+            System.out.println("Email sent successfully!");
+        } catch (MessagingException mex) {
+            mex.printStackTrace();
+        }
+    }
+
+    private static void sendSMS(String phoneNumber, String message) {
+        // Implement your SMS sending logic here
+        // This can be done using third-party APIs like Twilio
+        System.out.println("SMS sent to " + phoneNumber + ": " + message);
+    }
+
+    static class Event {
+        private String name;
+        private String dateTime;
+
+        public Event(String name, String dateTime) {
+            this.name = name;
+            this.dateTime = dateTime;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getDateTime() {
+            return dateTime;
+        }
+    }
+}
